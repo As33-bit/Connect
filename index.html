@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>麻將連連樂</title>
+  <style>
+    :root{
+      --bg:#170b05;
+      --panel:#2b180b;
+      --gold:#ffd15a;
+      --text:#fff4cf;
+      --muted:#c8aa78;
+      --green:#54d66d;
+      --line:#fff06a;
+    }
+
+    *{ box-sizing:border-box; }
+
+    html,body{
+      margin:0;
+      min-height:100%;
+      background:radial-gradient(circle at top,#422513 0%,#170b05 48%,#060201 100%);
+      color:var(--text);
+      font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+      overflow-x:hidden;
+      touch-action:manipulation;
+    }
+
+    button{ font:inherit; }
+
+    button{
+      border:0;
+      border-radius:10px;
+      padding:9px 12px;
+      color:#2b180b;
+      background:linear-gradient(#ffe990,#ffbf3a);
+      box-shadow:0 4px 0 #8f5410,0 8px 18px rgba(0,0,0,.25);
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    button:active{ transform:translateY(2px); box-shadow:0 2px 0 #8f5410,0 5px 12px rgba(0,0,0,.22); }
+    button:disabled{ opacity:.45; filter:grayscale(1); cursor:not-allowed; }
+    button.ghost{ background:#5b3618; color:var(--text); box-shadow:0 4px 0 #160802; }
+    button.active{ outline:3px solid rgba(255,255,190,.95); }
+    .music-toggle{
+      width:38px;
+      height:38px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      line-height:1;
+    }
+
+    .music-toggle.off{
+      opacity:.42;
+      filter:grayscale(1);
+    }
+
+    .app{
+      width:min(1280px,100%);
+      margin:0 auto;
+      padding:6px;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:20;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:8px;
+      align-items:center;
+      padding:8px;
+      background:rgba(23,11,5,.94);
+      border-bottom:1px solid rgba(255,209,90,.22);
+      backdrop-filter:blur(6px);
+    }
+
+    .brand{
+      color:var(--gold);
+      font-size:20px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .stats,
+    .actions,
+    .levels{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .levels{ display:none; }
+
+    .actions{ justify-content:flex-end; }
+
+    .stat{
+      min-width:82px;
+      padding:7px 9px;
+      border:1px solid rgba(255,209,90,.26);
+      border-radius:10px;
+      background:rgba(0,0,0,.18);
+      text-align:center;
+      font-weight:900;
+    }
+
+    .stat b{ color:var(--gold); }
+
+    .levelbar{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:8px;
+      align-items:center;
+      margin:8px 0;
+    }
+
+    .level-info{
+      color:var(--muted);
+      font-weight:900;
+      line-height:1.4;
+    }
+
+    .status{
+      display:none;
+    }
+
+    .board-wrap{
+      position:relative;
+      width:min(100%,1180px);
+      margin:0 auto;
+      padding:4px;
+      border:1px solid rgba(255,209,90,.24);
+      border-radius:12px;
+      background:linear-gradient(180deg,rgba(59,35,15,.96),rgba(22,9,4,.98));
+      box-shadow:0 14px 30px rgba(0,0,0,.38);
+      overflow:visible;
+    }
+
+    .board{
+      position:relative;
+      display:grid;
+      grid-template-columns:repeat(var(--cols),minmax(0,1fr));
+      gap:0;
+      width:100%;
+      overflow:visible;
+    }
+
+    .tile{
+      position:relative;
+      aspect-ratio:3 / 4;
+      min-width:0;
+      padding:0;
+      border-radius:6px;
+      background:rgba(255,241,195,.08);
+      box-shadow:none;
+      overflow:visible;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    .tile img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+      filter:drop-shadow(0 3px 6px rgba(0,0,0,.42));
+    }
+
+    .tile.selected::after,
+    .tile.hint::after{
+      content:"";
+      position:absolute;
+      inset:1px;
+      border:3px solid var(--gold);
+      border-radius:6px;
+      box-shadow:0 0 14px rgba(255,209,90,.85);
+      pointer-events:none;
+    }
+
+    .tile.hint::after{
+      border-color:var(--green);
+      box-shadow:0 0 14px rgba(84,214,109,.85);
+    }
+
+    .tile.empty{
+      visibility:hidden;
+      pointer-events:none;
+    }
+
+    .path-layer{
+      position:absolute;
+      inset:8px;
+      width:calc(100% - 16px);
+      height:calc(100% - 16px);
+      overflow:visible;
+      pointer-events:none;
+      z-index:10;
+    }
+
+    .path-layer polyline{
+      fill:none;
+      stroke:var(--line);
+      stroke-width:.07;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      filter:drop-shadow(0 0 4px rgba(255,240,106,.9));
+    }
+
+    .player-name{
+      width:120px;
+      min-width:0;
+      border:1px solid rgba(255,209,90,.35);
+      border-radius:10px;
+      padding:8px 9px;
+      color:var(--text);
+      background:rgba(0,0,0,.22);
+      font-weight:900;
+      outline:none;
+    }
+
+    .player-name::placeholder{ color:rgba(255,244,207,.58); }
+
+    .player-label{
+      color:var(--gold);
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .leaderboard{
+      margin-top:6px;
+      padding:8px;
+      border:1px solid rgba(255,209,90,.22);
+      border-radius:12px;
+      background:linear-gradient(180deg,rgba(59,35,15,.82),rgba(22,9,4,.88));
+    }
+
+    .leaderboard-title{
+      color:var(--gold);
+      font-size:18px;
+      font-weight:900;
+      margin-bottom:8px;
+    }
+
+    .leaderboard-head,
+    .leaderboard-row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:center;
+      padding:7px 8px;
+      border-radius:8px;
+      font-weight:900;
+    }
+
+    .leaderboard-head{
+      color:var(--muted);
+      background:rgba(0,0,0,.18);
+    }
+
+    .leaderboard-row:nth-child(even){
+      background:rgba(255,209,90,.07);
+    }
+
+    .leaderboard-empty{
+      padding:10px 8px;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:50;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(0,0,0,.72);
+    }
+
+    .modal.show{ display:flex; }
+
+    .dialog{
+      width:min(92vw,430px);
+      padding:24px;
+      border:2px solid rgba(255,209,90,.48);
+      border-radius:16px;
+      background:linear-gradient(180deg,rgba(61,36,15,.98),rgba(23,11,5,.98));
+      box-shadow:0 18px 42px rgba(0,0,0,.58);
+      text-align:center;
+    }
+
+    .dialog h2{
+      margin:0 0 12px;
+      color:var(--gold);
+      font-size:32px;
+    }
+
+    .dialog p{
+      margin:0 0 18px;
+      line-height:1.6;
+      font-size:18px;
+      font-weight:800;
+    }
+
+    .bingo-dialog{
+      width:min(96vw,980px);
+      height:min(94vh,820px);
+      padding:8px;
+      justify-content:flex-start;
+    }
+
+    .bingo-dialog h2{
+      font-size:20px;
+      margin-bottom:4px;
+    }
+
+    .bingo-rules{
+      margin:0 0 6px;
+      color:#f4ddb1;
+      font-size:12px;
+      font-weight:800;
+      line-height:1.35;
+      text-align:center;
+      white-space:normal;
+    }
+
+    .bingo-frame{
+      width:100%;
+      height:calc(100% - 50px);
+      border:0;
+      border-radius:12px;
+      background:#120805;
+    }
+
+    .bingo-modal-playing .bingo-rules{
+      display:none;
+    }
+
+    .bingo-modal-playing .bingo-frame{
+      height:100%;
+    }
+
+    @media (min-width:761px){
+      .app{
+        width:min(780px,100%);
+        padding:6px 10px 14px;
+      }
+
+      .topbar{
+        padding:7px 8px;
+      }
+
+      .brand{
+        font-size:18px;
+      }
+
+      .stat{
+        min-width:74px;
+        padding:6px 8px;
+        font-size:13px;
+      }
+
+      .player-name{
+        width:108px;
+        padding:7px 8px;
+        font-size:13px;
+      }
+
+      button{
+        padding:8px 10px;
+        font-size:14px;
+      }
+
+      .board-wrap{
+        width:min(560px,100%);
+      }
+
+      .leaderboard{
+        max-width:560px;
+        margin:8px auto 0;
+      }
+
+      .bingo-dialog{
+        width:min(92vw,760px);
+        height:min(90vh,700px);
+      }
+    }
+
+    @media (max-width:760px){
+      .app{ padding:5px; }
+      .topbar{
+        grid-template-columns:1fr auto;
+        gap:5px;
+        padding:5px;
+      }
+      .brand{ font-size:16px; }
+      .stats{
+        grid-column:1 / -1;
+        order:3;
+        gap:5px;
+      }
+      .stat{
+        min-width:66px;
+        padding:5px 6px;
+        font-size:12px;
+      }
+      .actions{ gap:5px; }
+      .player-label{ font-size:11px; }
+      .player-name{ width:86px; padding:6px 7px; font-size:12px; border-radius:8px; }
+      button{ padding:7px 8px; font-size:12px; border-radius:8px; }
+      .levelbar{ grid-template-columns:1fr; gap:5px; margin:5px 0; }
+      .levels{ justify-content:flex-start; gap:5px; }
+      .level-info{ font-size:12px; }
+      .board-wrap{ padding:2px; border-radius:10px; }
+      .tile{ border-radius:5px; }
+      .tile.selected::after,
+      .tile.hint::after{
+        inset:1px;
+        border-width:2px;
+        border-radius:5px;
+      }
+      .path-layer{
+        inset:5px;
+        width:calc(100% - 10px);
+        height:calc(100% - 10px);
+      }
+      .leaderboard{ padding:8px; border-radius:10px; }
+      .leaderboard-title{ font-size:15px; margin-bottom:6px; }
+      .leaderboard-head,
+      .leaderboard-row{ padding:6px; font-size:12px; border-radius:7px; }
+      .dialog{ padding:20px; }
+      .dialog h2{ font-size:28px; }
+      .dialog p{ font-size:16px; }
+      .bingo-dialog{
+        width:100vw;
+        height:100dvh;
+        padding:0 4px calc(env(safe-area-inset-bottom, 0px) + 2px);
+        border:0;
+        border-radius:0;
+      }
+      .bingo-rules{
+        font-size:10px;
+        line-height:1.18;
+        margin-bottom:0;
+      }
+      .bingo-frame{
+        height:calc(100% - 28px);
+        border-radius:8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">麻將連連樂</div>
+      <div class="stats">
+        <div class="stat">時間 <b id="timeText">02:00</b></div>
+        <div class="stat">剩餘 <b id="leftText">20</b></div>
+        <div class="stat">分數 <b id="scoreText">0</b></div>
+      </div>
+      <div class="actions">
+        <span class="player-label">填寫</span>
+        <input id="playerName" class="player-name" type="text" maxlength="12" placeholder="用戶名" />
+        <span class="player-label">進入英雄榜</span>
+        <button id="btnRestart" class="ghost" type="button">放棄</button>
+        <button id="btnBgm" class="ghost music-toggle" type="button" aria-label="關閉背景音樂" title="關閉背景音樂">♪</button>
+      </div>
+    </header>
+
+    <section class="levelbar">
+      <div class="levels" id="levelButtons"></div>
+      <div class="level-info" id="levelInfo"></div>
+    </section>
+
+    <div class="status" id="statusText"></div>
+
+    <main>
+      <section class="board-wrap">
+        <div class="board" id="board"></div>
+        <svg class="path-layer" id="pathLayer" viewBox="0 0 5 4" preserveAspectRatio="none"></svg>
+      </section>
+
+      <section class="leaderboard">
+        <div class="leaderboard-title">英雄榜</div>
+        <div class="leaderboard-head">
+          <span>用戶名</span>
+          <span>分數</span>
+        </div>
+        <div id="leaderboardList" class="leaderboard-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="resultModal" aria-hidden="true">
+    <div class="dialog">
+      <h2 id="resultTitle">完成</h2>
+      <p id="resultText"></p>
+      <button id="btnModalRestart" type="button">再玩一次</button>
+    </div>
+  </div>
+
+  <div class="modal" id="bingoModal" aria-hidden="true">
+    <div class="dialog bingo-dialog">
+      <p class="bingo-rules">補牌成功*1.2倍 / 一連線*1.5倍<br>二連線*2倍 / 三連線*2.5倍</p>
+      <iframe id="bingoFrame" class="bingo-frame" title="麻將賓果 Bonus"></iframe>
+    </div>
+  </div>
+
+  <div class="modal" id="bonusIntroModal" aria-hidden="true">
+    <div class="dialog">
+      <h2>進入獎勵關卡中…</h2>
+      <p>完成賓果 獲得更多積分！</p>
+    </div>
+  </div>
+
+  <audio id="bgmPlayer" src="gmae.mp3?v=audio-low-file-v1" loop preload="auto"></audio>
+
+  <script>
+    function buildPairCounts(types, cards){
+      let remainingPairs = (cards / 2) - (types * 2);
+      const counts = Array.from({ length:types }, () => 2);
+      let index = 0;
+      while(remainingPairs > 0){
+        counts[index % types] += 1;
+        index += 1;
+        remainingPairs -= 1;
+      }
+      return counts;
+    }
+
+    function makeLevel(number, rows, cols, types, time){
+      const cards = rows * cols;
+      const isChallenge = number % 3 === 0;
+      const pairCounts = buildPairCounts(types, cards);
+      const samePairs = pairCounts.every((count) => count === pairCounts[0]);
+      return {
+        id:`level_${String(number).padStart(2, '0')}`,
+        name:`第${number}關 ${isChallenge ? '獎勵關卡' : '一般關卡'}`,
+        rows,
+        cols,
+        types,
+        ...(samePairs ? { pairsPerType:pairCounts[0] } : { pairCounts }),
+        time
+      };
+    }
+
+    const LEVELS = [
+      makeLevel(1, 4, 4, 4, 110),
+      makeLevel(2, 4, 5, 5, 120),
+      makeLevel(3, 5, 6, 7, 140),
+      makeLevel(4, 5, 6, 5, 150),
+      makeLevel(5, 6, 7, 7, 165),
+      makeLevel(6, 6, 8, 12, 185),
+      makeLevel(7, 6, 8, 8, 195),
+      makeLevel(8, 6, 9, 10, 210),
+      makeLevel(9, 6, 10, 15, 235),
+      makeLevel(10, 6, 10, 10, 245),
+      makeLevel(11, 6, 11, 12, 265),
+      makeLevel(12, 6, 12, 18, 295),
+      makeLevel(13, 6, 12, 12, 305),
+      makeLevel(14, 6, 13, 15, 325),
+      makeLevel(15, 7, 12, 21, 355),
+      makeLevel(16, 7, 12, 14, 365),
+      makeLevel(17, 6, 15, 18, 385),
+      makeLevel(18, 7, 14, 24, 415),
+      makeLevel(19, 7, 14, 16, 425),
+      makeLevel(20, 8, 13, 21, 450),
+      makeLevel(21, 8, 14, 28, 485),
+      makeLevel(22, 8, 14, 20, 500),
+      makeLevel(23, 8, 15, 24, 525),
+      makeLevel(24, 9, 14, 31, 560),
+      makeLevel(25, 9, 14, 22, 575),
+      makeLevel(26, 11, 12, 28, 600),
+      makeLevel(27, 10, 14, 35, 640),
+      makeLevel(28, 10, 14, 24, 660),
+      makeLevel(29, 10, 15, 30, 690),
+      makeLevel(30, 12, 13, 36, 730)
+    ];
+
+    const TILE_KEYS = [
+      'wind_east','wind_south','wind_west','wind_north',
+      'dragon_red','dragon_green','dragon_white',
+      'tong_1','tong_2','tong_3','tong_4','tong_5','tong_6','tong_7','tong_8','tong_9',
+      'suo_1','suo_2','suo_3','suo_4','suo_5','suo_6','suo_7','suo_8','suo_9',
+      'wan_1','wan_2','wan_3','wan_4','wan_5','wan_6','wan_7','wan_8','wan_9',
+      'flower_spring','flower_summer'
+    ];
+
+    const TILE_NAMES = {
+      wind_east:'東', wind_south:'南', wind_west:'西', wind_north:'北',
+      dragon_red:'中', dragon_green:'發', dragon_white:'白板',
+      flower_spring:'春', flower_summer:'夏'
+    };
+
+    const el = {
+      board: document.getElementById('board'),
+      pathLayer: document.getElementById('pathLayer'),
+      statusText: document.getElementById('statusText'),
+      timeText: document.getElementById('timeText'),
+      leftText: document.getElementById('leftText'),
+      scoreText: document.getElementById('scoreText'),
+      btnRestart: document.getElementById('btnRestart'),
+      playerName: document.getElementById('playerName'),
+      leaderboardList: document.getElementById('leaderboardList'),
+      levelButtons: document.getElementById('levelButtons'),
+      levelInfo: document.getElementById('levelInfo'),
+      resultModal: document.getElementById('resultModal'),
+      resultTitle: document.getElementById('resultTitle'),
+      resultText: document.getElementById('resultText'),
+      btnModalRestart: document.getElementById('btnModalRestart'),
+      bingoModal: document.getElementById('bingoModal'),
+      bingoFrame: document.getElementById('bingoFrame'),
+      bonusIntroModal: document.getElementById('bonusIntroModal'),
+      bgmPlayer: document.getElementById('bgmPlayer'),
+      btnBgm: document.getElementById('btnBgm')
+    };
+
+    const state = {
+      levelIndex:0,
+      board:[],
+      selected:null,
+      score:0,
+      levelStartScore:0,
+      pendingBingoMessage:'',
+      pendingBingoNext:false,
+      pendingBingoLevelScore:0,
+      bonusIntroTimer:null,
+      matches:0,
+      left:0,
+      timeLeft:0,
+      timer:null,
+      timerStarted:false,
+      locked:false,
+      hintPair:null,
+      ended:false,
+      modalNext:false,
+      scoreSaved:false,
+      bgmPlaying:true,
+      audioCtx:null,
+      bgmGain:null,
+      bgmSource:null,
+      bgmBuffer:null,
+      bgmLoading:null,
+      bgmStarting:false,
+      bgmStartToken:0
+    };
+
+    function currentLevel(){
+      return LEVELS[state.levelIndex];
+    }
+
+    function tileName(key){
+      if(TILE_NAMES[key]) return TILE_NAMES[key];
+      const [kind, num] = key.split('_');
+      const names = { tong:'筒', suo:'索', wan:'萬' };
+      return `${num}${names[kind] || ''}`;
+    }
+
+    function tileSrc(key){
+      return `tiles_fast/${key}.png?v=tiles-fast-v1`;
+    }
+
+    function shuffle(list){
+      const arr = [...list];
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function makeDeck(level){
+      const keys = TILE_KEYS.slice(0, level.types);
+      return shuffle(keys.flatMap((key, keyIndex) => {
+        const pairs = level.pairCounts ? level.pairCounts[keyIndex] : level.pairsPerType;
+        const copies = pairs * 2;
+        return (
+        Array.from({ length:copies }, (_, i) => ({
+          key,
+          id:`${key}_${i}_${Math.random().toString(36).slice(2)}`
+        }))
+        );
+      }));
+    }
+
+    function levelPairText(level){
+      if(!level.pairCounts) return `每種 ${level.pairsPerType} 對`;
+      const min = Math.min(...level.pairCounts);
+      const max = Math.max(...level.pairCounts);
+      return min === max ? `每種 ${min} 對` : `每種 ${min}-${max} 對`;
+    }
+
+    function startGame(levelIndex = state.levelIndex, resetScore = false){
+      state.levelIndex = levelIndex;
+      const level = currentLevel();
+      state.board = makeDeck(level);
+      state.selected = null;
+      state.matches = 0;
+      if(resetScore) state.score = 0;
+      state.levelStartScore = state.score;
+      state.pendingBingoMessage = '';
+      state.pendingBingoNext = false;
+      state.pendingBingoLevelScore = 0;
+      clearTimeout(state.bonusIntroTimer);
+      state.bonusIntroTimer = null;
+      state.left = state.board.length;
+      state.timeLeft = level.time;
+      state.timerStarted = false;
+      state.locked = false;
+      state.hintPair = null;
+      state.ended = false;
+      state.modalNext = false;
+      state.scoreSaved = false;
+      clearInterval(state.timer);
+      state.timer = null;
+      hideResult();
+      updateLevelUi();
+      setStatus(`目前關卡：${level.name}。點選兩張相同麻將即可嘗試消除。`);
+      render();
+      playBgm();
+    }
+
+    function pairScore(){
+      return (state.levelIndex + 1) * 10;
+    }
+
+    function clearBonus(){
+      return Math.max(0, state.timeLeft) * (state.levelIndex + 1);
+    }
+
+    function getPlayerName(){
+      const name = el.playerName.value.trim();
+      return name || '匿名';
+    }
+
+    function getLeaderboard(){
+      try{
+        return JSON.parse(localStorage.getItem('mahjongConnectLeaderboard') || '[]');
+      }catch(_err){
+        return [];
+      }
+    }
+
+    function saveLeaderboard(records){
+      localStorage.setItem('mahjongConnectLeaderboard', JSON.stringify(records.slice(0, 20)));
+    }
+
+    function renderLeaderboard(){
+      const records = getLeaderboard();
+      el.leaderboardList.innerHTML = '';
+      if(!records.length){
+        el.leaderboardList.innerHTML = '<div class="leaderboard-empty">目前沒有紀錄</div>';
+        return;
+      }
+      records.slice(0, 10).forEach(record => {
+        const row = document.createElement('div');
+        row.className = 'leaderboard-row';
+        const name = document.createElement('span');
+        const score = document.createElement('span');
+        name.textContent = record.name;
+        score.textContent = String(record.score);
+        row.append(name, score);
+        el.leaderboardList.appendChild(row);
+      });
+    }
+
+    function recordScore(reason = ''){
+      if(state.scoreSaved) return;
+      const records = getLeaderboard();
+      records.push({
+        name:getPlayerName(),
+        score:state.score,
+        level:state.levelIndex + 1,
+        reason,
+        time:Date.now()
+      });
+      records.sort((a,b) => b.score - a.score || b.time - a.time);
+      saveLeaderboard(records);
+      state.scoreSaved = true;
+      renderLeaderboard();
+    }
+
+    function abandonGame(){
+      recordScore('放棄');
+      startGame(0, true);
+    }
+
+    function tick(){
+      if(state.ended) return;
+      state.timeLeft -= 1;
+      updateStats();
+      if(state.timeLeft <= 0){
+        endGame(false, '時間到，挑戰失敗。');
+      }
+    }
+
+    function startTimerIfNeeded(){
+      if(state.timerStarted || state.ended) return;
+      state.timerStarted = true;
+      clearInterval(state.timer);
+      state.timer = setInterval(tick, 1000);
+      setStatus('計時開始，清除所有麻將即可過關。');
+    }
+
+    function formatTime(seconds){
+      const m = String(Math.floor(seconds / 60)).padStart(2,'0');
+      const s = String(seconds % 60).padStart(2,'0');
+      return `${m}:${s}`;
+    }
+
+    function updateStats(){
+      el.timeText.textContent = formatTime(Math.max(0,state.timeLeft));
+      el.leftText.textContent = String(state.left);
+      el.scoreText.textContent = String(state.score);
+    }
+
+    function updateLevelUi(){
+      const level = currentLevel();
+      el.levelInfo.textContent = `${level.name}：${level.types} 個花色，${levelPairText(level)}，共 ${level.rows * level.cols} 張`;
+      [...el.levelButtons.children].forEach((btn, index) => {
+        btn.classList.toggle('active', index === state.levelIndex);
+      });
+      el.board.style.setProperty('--cols', String(level.cols));
+      el.pathLayer.setAttribute('viewBox', `0 0 ${level.cols} ${level.rows}`);
+    }
+
+    function renderLevelButtons(){
+      el.levelButtons.innerHTML = '';
+      LEVELS.forEach((level, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = level.name;
+        btn.className = index === state.levelIndex ? 'active' : '';
+        btn.addEventListener('click', () => startGame(index));
+        el.levelButtons.appendChild(btn);
+      });
+    }
+
+    function render(){
+      const level = currentLevel();
+      el.board.innerHTML = '';
+      el.board.style.setProperty('--cols', String(level.cols));
+      state.board.forEach((tile, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tile';
+        btn.dataset.index = String(index);
+        if(!tile){
+          btn.classList.add('empty');
+        }else{
+          const img = document.createElement('img');
+          img.src = tileSrc(tile.key);
+          img.alt = tileName(tile.key);
+          img.draggable = false;
+          btn.appendChild(img);
+          if(state.selected === index) btn.classList.add('selected');
+          if(state.hintPair && (state.hintPair[0] === index || state.hintPair[1] === index)) btn.classList.add('hint');
+          btn.addEventListener('click', () => chooseTile(index));
+        }
+        el.board.appendChild(btn);
+      });
+      updateStats();
+    }
+
+    function setStatus(text){
+      el.statusText.textContent = '';
+    }
+
+    function rowOf(index){ return Math.floor(index / currentLevel().cols); }
+    function colOf(index){ return index % currentLevel().cols; }
+    function idx(row,col){ return row * currentLevel().cols + col; }
+
+    function isEmptyCell(row,col){
+      const level = currentLevel();
+      return row < 0 || row >= level.rows || col < 0 || col >= level.cols || !state.board[idx(row,col)];
+    }
+
+    function chooseTile(index){
+      if(state.locked || state.ended) return;
+      const tile = state.board[index];
+      if(!tile) return;
+      playBgm();
+      startTimerIfNeeded();
+      clearHint();
+      if(state.selected === null){
+        state.selected = index;
+        render();
+        return;
+      }
+      if(state.selected === index){
+        state.selected = null;
+        render();
+        return;
+      }
+
+      const first = state.selected;
+      const firstTile = state.board[first];
+      if(!firstTile || firstTile.key !== tile.key){
+        state.selected = index;
+        setStatus('請選兩張相同圖案。');
+        render();
+        return;
+      }
+
+      const path = findPath(first, index);
+      if(!path){
+        state.selected = index;
+        setStatus('這兩張牌路線被擋住，轉折超過 2 次。');
+        render();
+        return;
+      }
+
+      removePair(first, index, path);
+    }
+
+    function clearHint(){
+      if(state.hintPair) state.hintPair = null;
+    }
+
+    function removePair(a,b,path){
+      state.locked = true;
+      drawPath(path);
+      setTimeout(() => {
+        state.board[a] = null;
+        state.board[b] = null;
+        state.selected = null;
+        const gained = pairScore();
+        state.left -= 2;
+        state.matches += 1;
+        state.score += gained;
+        state.locked = false;
+        clearPath();
+        if(state.left <= 0){
+          const bonus = clearBonus();
+          state.score += bonus;
+          render();
+          const isLast = state.levelIndex >= LEVELS.length - 1;
+          endGame(true, isLast ? '恭喜完成所有關卡！' : '過關成功，可以進入下一關。', { clearBonus: bonus });
+          return;
+        }
+        setStatus(`配對成功，+${gained} 分。`);
+        render();
+        if(!findAvailablePair()){
+          setStatus('目前沒有可消除的牌，可以按洗牌。');
+        }
+      }, 230);
+    }
+
+    function buildOccupiedGrid(a,b){
+      const level = currentLevel();
+      const rows = level.rows + 2;
+      const cols = level.cols + 2;
+      const grid = Array.from({ length:rows }, () => Array(cols).fill(false));
+      state.board.forEach((tile, index) => {
+        if(!tile || index === a || index === b) return;
+        grid[rowOf(index) + 1][colOf(index) + 1] = true;
+      });
+      return grid;
+    }
+
+    function findPath(a,b){
+      const level = currentLevel();
+      const grid = buildOccupiedGrid(a,b);
+      const start = { r:rowOf(a) + 1, c:colOf(a) + 1 };
+      const end = { r:rowOf(b) + 1, c:colOf(b) + 1 };
+      const dirs = [[-1,0],[0,1],[1,0],[0,-1]];
+      const queue = [];
+      const seen = new Set();
+
+      for(let d = 0; d < dirs.length; d++){
+        queue.push({ r:start.r, c:start.c, dir:d, turns:0, path:[start] });
+        seen.add(`${start.r},${start.c},${d},0`);
+      }
+
+      while(queue.length){
+        const cur = queue.shift();
+        const [dr,dc] = dirs[cur.dir];
+        const nr = cur.r + dr;
+        const nc = cur.c + dc;
+        if(nr < 0 || nr >= level.rows + 2 || nc < 0 || nc >= level.cols + 2) continue;
+        if(grid[nr][nc] && !(nr === end.r && nc === end.c)) continue;
+
+        const nextPath = appendPoint(cur.path, { r:nr, c:nc });
+        if(nr === end.r && nc === end.c) return expandedPathToBoard(nextPath);
+
+        for(let nd = 0; nd < dirs.length; nd++){
+          const nt = cur.turns + (nd === cur.dir ? 0 : 1);
+          if(nt > 2) continue;
+          const key = `${nr},${nc},${nd},${nt}`;
+          if(seen.has(key)) continue;
+          seen.add(key);
+          queue.push({ r:nr, c:nc, dir:nd, turns:nt, path:nextPath });
+        }
+      }
+      return null;
+    }
+
+    function appendPoint(path, point){
+      if(path.length < 2) return [...path, point];
+      const a = path[path.length - 2];
+      const b = path[path.length - 1];
+      if((a.r === b.r && b.r === point.r) || (a.c === b.c && b.c === point.c)){
+        return [...path.slice(0,-1), point];
+      }
+      return [...path, point];
+    }
+
+    function expandedPathToBoard(path){
+      return path.map(p => ({ x:p.c - .5, y:p.r - .5 }));
+    }
+
+    function drawPath(path){
+      el.pathLayer.innerHTML = `<polyline points="${path.map(p => `${p.x},${p.y}`).join(' ')}"></polyline>`;
+    }
+
+    function clearPath(){
+      el.pathLayer.innerHTML = '';
+    }
+
+    function findAvailablePair(){
+      const indexes = state.board
+        .map((tile, index) => tile ? index : -1)
+        .filter(index => index >= 0);
+      for(let i = 0; i < indexes.length; i++){
+        for(let j = i + 1; j < indexes.length; j++){
+          const a = indexes[i];
+          const b = indexes[j];
+          if(state.board[a].key === state.board[b].key && findPath(a,b)) return [a,b];
+        }
+      }
+      return null;
+    }
+
+    function showHint(){
+      if(state.ended || state.locked) return;
+      const pair = findAvailablePair();
+      if(!pair){
+        setStatus('目前沒有可消除的牌，請洗牌。');
+        return;
+      }
+      state.hintPair = pair;
+      state.selected = null;
+      setStatus('已標示一組可消除的牌。');
+      render();
+    }
+
+    function shuffleRemaining(){
+      if(state.ended || state.locked) return;
+      const positions = [];
+      const tiles = [];
+      state.board.forEach((tile, index) => {
+        if(tile){
+          positions.push(index);
+          tiles.push(tile);
+        }
+      });
+      const shuffled = shuffle(tiles);
+      positions.forEach((position, i) => {
+        state.board[position] = shuffled[i];
+      });
+      state.selected = null;
+      state.hintPair = null;
+      setStatus('已重新洗牌。');
+      render();
+    }
+
+    function isChallengeLevel(){
+      return (state.levelIndex + 1) % 3 === 0;
+    }
+
+    function showBingoBonus(message, modalNext){
+      state.pendingBingoMessage = message;
+      state.pendingBingoNext = modalNext;
+      state.pendingBingoLevelScore = Math.max(0, state.score - state.levelStartScore);
+      el.bonusIntroModal.classList.add('show');
+      el.bonusIntroModal.setAttribute('aria-hidden','false');
+      clearTimeout(state.bonusIntroTimer);
+      state.bonusIntroTimer = setTimeout(enterBingoBonus, 3000);
+    }
+
+    function enterBingoBonus(){
+      clearTimeout(state.bonusIntroTimer);
+      state.bonusIntroTimer = null;
+      el.bonusIntroModal.classList.remove('show');
+      el.bonusIntroModal.setAttribute('aria-hidden','true');
+      el.bingoModal.classList.remove('bingo-modal-playing');
+      el.bingoFrame.src = `bingo-bonus/index.html?bonus=${Date.now()}`;
+      el.bingoModal.classList.add('show');
+      el.bingoModal.setAttribute('aria-hidden','false');
+    }
+
+    function closeBingoBonus(){
+      clearTimeout(state.bonusIntroTimer);
+      state.bonusIntroTimer = null;
+      el.bonusIntroModal.classList.remove('show');
+      el.bonusIntroModal.setAttribute('aria-hidden','true');
+      el.bingoModal.classList.remove('show');
+      el.bingoModal.classList.remove('bingo-modal-playing');
+      el.bingoModal.setAttribute('aria-hidden','true');
+      el.bingoFrame.src = '';
+    }
+
+    function finishBingoBonus(result = {}){
+      const multiplier = result.multiplier;
+      const rewardLabels = Array.isArray(result.rewards) && result.rewards.length
+        ? result.rewards.join('、')
+        : '未中獎*1';
+      const safeMultiplier = Math.max(1, Number(multiplier) || 1);
+      const extra = Math.round(state.pendingBingoLevelScore * (safeMultiplier - 1));
+      if(extra > 0) state.score += extra;
+      closeBingoBonus();
+      showResult(
+        true,
+        `獎勵：<br>${rewardLabels}。<br>額外加 ${extra} 分。<br>目前總分 ${state.score} 分。`,
+        state.pendingBingoNext,
+        '積分挑戰',
+        { html: true }
+      );
+    }
+
+    function showResult(win, message, modalNext, title = '', options = {}){
+      state.modalNext = modalNext;
+      if(!state.modalNext) recordScore(win ? '完成' : '結束');
+      el.resultTitle.textContent = title || (win ? '過關成功' : '遊戲結束');
+      if(options.html){
+        el.resultText.innerHTML = message;
+      }else if(win && typeof options.clearBonus === 'number'){
+        el.resultText.innerHTML = `過關積分+${options.clearBonus}分。<br>目前總分 ${state.score} 分。`;
+      }else{
+        el.resultText.textContent = `${message} 本關配對 ${state.matches} 組，剩餘 ${state.left} 張，總分 ${state.score} 分。`;
+      }
+      el.btnModalRestart.textContent = state.modalNext ? '下一關' : '再玩一次';
+      el.resultModal.classList.add('show');
+      el.resultModal.setAttribute('aria-hidden','false');
+    }
+
+    function endGame(win, message, resultOptions = {}){
+      state.ended = true;
+      state.timerStarted = false;
+      state.locked = false;
+      const modalNext = win && state.levelIndex < LEVELS.length - 1;
+      clearInterval(state.timer);
+      state.timer = null;
+      clearPath();
+      state.selected = null;
+      render();
+      if(win && isChallengeLevel()){
+        showBingoBonus(message, modalNext);
+        return;
+      }
+      showResult(win, message, modalNext, '', resultOptions);
+    }
+
+    function hideResult(){
+      el.resultModal.classList.remove('show');
+      el.resultModal.setAttribute('aria-hidden','true');
+    }
+
+    function modalAction(){
+      if(state.modalNext) startGame(state.levelIndex + 1, false);
+      else startGame(0, true);
+    }
+
+    function getBgmVolume(){
+      return window.matchMedia('(max-width:760px)').matches ? 1 : .3;
+    }
+
+    function getBgmSrc(){
+      return window.matchMedia('(max-width:760px)').matches
+        ? 'gmae.mobile.mp3?v=audio-mobile-low-v2'
+        : 'gmae.mp3?v=audio-low-file-v1';
+    }
+
+    function applyBgmSource(){
+      const src = getBgmSrc();
+      if(el.bgmPlayer.getAttribute('src') === src) return;
+      el.bgmPlayer.setAttribute('src', src);
+      el.bgmPlayer.load();
+      state.bgmBuffer = null;
+      state.bgmLoading = null;
+    }
+
+    function setupAudioOutput(){
+      if(state.bgmGain) return;
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if(!AudioCtx) return;
+        state.audioCtx = state.audioCtx || new AudioCtx();
+        state.bgmGain = state.audioCtx.createGain();
+        state.bgmGain.connect(state.audioCtx.destination);
+      }catch(_err){
+        state.bgmGain = null;
+      }
+    }
+
+    async function loadBgmBuffer(){
+      applyBgmSource();
+      if(state.bgmBuffer) return state.bgmBuffer;
+      if(state.bgmLoading) return state.bgmLoading;
+      setupAudioOutput();
+      if(!state.audioCtx) return null;
+      state.bgmLoading = fetch(el.bgmPlayer.getAttribute('src'))
+        .then(response => response.arrayBuffer())
+        .then(buffer => state.audioCtx.decodeAudioData(buffer))
+        .then(decoded => {
+          state.bgmBuffer = decoded;
+          return decoded;
+        })
+        .catch(() => null);
+      return state.bgmLoading;
+    }
+
+    function applyBgmVolume(){
+      const volume = getBgmVolume();
+      applyBgmSource();
+      el.bgmPlayer.volume = volume;
+      el.bgmPlayer.muted = !state.bgmPlaying;
+      setupAudioOutput();
+      if(state.bgmGain) state.bgmGain.gain.value = volume;
+    }
+
+    async function playBgm(){
+      if(!state.bgmPlaying) return;
+      applyBgmVolume();
+      el.bgmPlayer.muted = false;
+      el.bgmPlayer.loop = true;
+      if(!el.bgmPlayer.paused) return;
+      await el.bgmPlayer.play().catch(() => {});
+    }
+
+    function stopBgm(){
+      state.bgmStarting = false;
+      state.bgmStartToken += 1;
+      if(state.bgmGain) state.bgmGain.gain.value = 0;
+      if(state.bgmSource){
+        try{ state.bgmSource.stop(); }catch(_err){}
+        state.bgmSource.disconnect();
+        state.bgmSource = null;
+      }
+      el.bgmPlayer.pause();
+      el.bgmPlayer.muted = true;
+      el.bgmPlayer.currentTime = 0;
+      if(state.audioCtx && state.audioCtx.state === 'running'){
+        state.audioCtx.suspend().catch(() => {});
+      }
+    }
+
+    function updateBgmButton(){
+      el.btnBgm.textContent = '♪';
+      el.btnBgm.classList.toggle('off', !state.bgmPlaying);
+      el.btnBgm.setAttribute('aria-label', state.bgmPlaying ? '關閉背景音樂' : '開啟背景音樂');
+      el.btnBgm.title = state.bgmPlaying ? '關閉背景音樂' : '開啟背景音樂';
+    }
+
+    function toggleBgm(){
+      state.bgmPlaying = !state.bgmPlaying;
+      if(state.bgmPlaying) playBgm();
+      else stopBgm();
+      updateBgmButton();
+    }
+
+    function playBgmFromPointer(event){
+      if(event.target && event.target.closest && event.target.closest('#btnBgm')) return;
+      playBgm();
+    }
+
+    el.btnRestart.addEventListener('click', abandonGame);
+    el.btnBgm.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+    });
+    el.btnBgm.addEventListener('click', toggleBgm);
+    el.btnModalRestart.addEventListener('click', modalAction);
+    el.playerName.value = localStorage.getItem('mahjongConnectPlayerName') || '';
+    el.playerName.addEventListener('input', () => {
+      localStorage.setItem('mahjongConnectPlayerName', el.playerName.value.trim());
+    });
+    window.addEventListener('message', (event) => {
+      if(event.origin !== window.location.origin) return;
+      if(event.data && event.data.type === 'mahjong-bingo-bonus-playing'){
+        el.bingoModal.classList.add('bingo-modal-playing');
+        return;
+      }
+      if(!event.data || event.data.type !== 'mahjong-bingo-bonus-complete') return;
+      finishBingoBonus(event.data);
+    });
+    window.addEventListener('pointerdown', playBgmFromPointer, { passive:true, capture:true });
+    window.addEventListener('resize', applyBgmVolume);
+    window.addEventListener('visibilitychange', applyBgmVolume);
+
+    renderLeaderboard();
+    updateBgmButton();
+    startGame(0, true);
+  </script>
+</body>
+</html>
