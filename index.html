@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>暻餃?????</title>
+  <title>麻將連連樂</title>
   <style>
     :root{
       --bg:#170b05;
@@ -463,18 +463,18 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand">暻餃?????</div>
+      <div class="brand">麻將連連樂</div>
       <div class="stats">
-        <div class="stat">?? <b id="timeText">02:00</b></div>
-        <div class="stat">?拚? <b id="leftText">20</b></div>
-        <div class="stat">? <b id="scoreText">0</b></div>
+        <div class="stat">時間 <b id="timeText">02:00</b></div>
+        <div class="stat">剩餘 <b id="leftText">20</b></div>
+        <div class="stat">分數 <b id="scoreText">0</b></div>
       </div>
       <div class="actions">
-        <span class="player-label">憛怠神</span>
-        <input id="playerName" class="player-name" type="text" maxlength="12" placeholder="?冽?? />
-        <span class="player-label">?脣?梢?璁?/span>
-        <button id="btnRestart" class="ghost" type="button">?暹?</button>
-        <button id="btnBgm" class="ghost music-toggle" type="button" aria-label="????單?" title="????單?">??/button>
+        <span class="player-label">填寫</span>
+        <input id="playerName" class="player-name" type="text" maxlength="12" placeholder="用戶名" />
+        <span class="player-label">進入英雄榜</span>
+        <button id="btnRestart" class="ghost" type="button">放棄</button>
+        <button id="btnBgm" class="ghost music-toggle" type="button" aria-label="關閉背景音樂" title="關閉背景音樂">♪</button>
       </div>
     </header>
 
@@ -492,10 +492,10 @@
       </section>
 
       <section class="leaderboard">
-        <div class="leaderboard-title">?梢?璁?/div>
+        <div class="leaderboard-title">英雄榜</div>
         <div class="leaderboard-head">
-          <span>?冽??/span>
-          <span>?</span>
+          <span>用戶名</span>
+          <span>分數</span>
         </div>
         <div id="leaderboardList" class="leaderboard-list"></div>
       </section>
@@ -504,26 +504,25 @@
 
   <div class="modal" id="resultModal" aria-hidden="true">
     <div class="dialog">
-      <h2 id="resultTitle">摰?</h2>
+      <h2 id="resultTitle">完成</h2>
       <p id="resultText"></p>
-      <button id="btnModalRestart" type="button">?銝甈?/button>
+      <button id="btnModalRestart" type="button">再玩一次</button>
     </div>
   </div>
 
   <div class="modal" id="bingoModal" aria-hidden="true">
     <div class="dialog bingo-dialog">
-      <p class="bingo-rules">鋆???*1.2??/ 銝???*1.5??br>鈭??*2??/ 銝??*2.5??/p>
-      <iframe id="bingoFrame" class="bingo-frame" title="暻餃?鞈? Bonus"></iframe>
+      <p class="bingo-rules">補牌成功*1.2倍 / 一連線*1.5倍<br>二連線*2倍 / 三連線*2.5倍</p>
+      <iframe id="bingoFrame" class="bingo-frame" title="麻將賓果 Bonus"></iframe>
     </div>
   </div>
 
   <div class="modal" id="bonusIntroModal" aria-hidden="true">
     <div class="dialog">
-      <h2>?脣??銝凌?/h2>
-      <p>摰?鞈? ?脣??游?蝛?嚗?/p>
+      <h2>進入獎勵關卡中…</h2>
+      <p>完成賓果 獲得更多積分！</p>
     </div>
   </div>
-
   <audio id="bgmPlayer" src="gmae.mp3?v=audio-low-file-v1" loop preload="auto"></audio>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -1376,4 +1375,6 @@
   </script>
 </body>
 </html>
+
+
 
