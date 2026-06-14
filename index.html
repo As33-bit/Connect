@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>麻將連連樂</title>
+  <title>暻餃?????</title>
   <style>
     :root{
       --bg:#170b05;
@@ -463,18 +463,18 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand">麻將連連樂</div>
+      <div class="brand">暻餃?????</div>
       <div class="stats">
-        <div class="stat">時間 <b id="timeText">02:00</b></div>
-        <div class="stat">剩餘 <b id="leftText">20</b></div>
-        <div class="stat">分數 <b id="scoreText">0</b></div>
+        <div class="stat">?? <b id="timeText">02:00</b></div>
+        <div class="stat">?拚? <b id="leftText">20</b></div>
+        <div class="stat">? <b id="scoreText">0</b></div>
       </div>
       <div class="actions">
-        <span class="player-label">填寫</span>
-        <input id="playerName" class="player-name" type="text" maxlength="12" placeholder="用戶名" />
-        <span class="player-label">進入英雄榜</span>
-        <button id="btnRestart" class="ghost" type="button">放棄</button>
-        <button id="btnBgm" class="ghost music-toggle" type="button" aria-label="關閉背景音樂" title="關閉背景音樂">♪</button>
+        <span class="player-label">憛怠神</span>
+        <input id="playerName" class="player-name" type="text" maxlength="12" placeholder="?冽?? />
+        <span class="player-label">?脣?梢?璁?/span>
+        <button id="btnRestart" class="ghost" type="button">?暹?</button>
+        <button id="btnBgm" class="ghost music-toggle" type="button" aria-label="????單?" title="????單?">??/button>
       </div>
     </header>
 
@@ -492,10 +492,10 @@
       </section>
 
       <section class="leaderboard">
-        <div class="leaderboard-title">英雄榜</div>
+        <div class="leaderboard-title">?梢?璁?/div>
         <div class="leaderboard-head">
-          <span>用戶名</span>
-          <span>分數</span>
+          <span>?冽??/span>
+          <span>?</span>
         </div>
         <div id="leaderboardList" class="leaderboard-list"></div>
       </section>
@@ -504,29 +504,43 @@
 
   <div class="modal" id="resultModal" aria-hidden="true">
     <div class="dialog">
-      <h2 id="resultTitle">完成</h2>
+      <h2 id="resultTitle">摰?</h2>
       <p id="resultText"></p>
-      <button id="btnModalRestart" type="button">再玩一次</button>
+      <button id="btnModalRestart" type="button">?銝甈?/button>
     </div>
   </div>
 
   <div class="modal" id="bingoModal" aria-hidden="true">
     <div class="dialog bingo-dialog">
-      <p class="bingo-rules">補牌成功*1.2倍 / 一連線*1.5倍<br>二連線*2倍 / 三連線*2.5倍</p>
-      <iframe id="bingoFrame" class="bingo-frame" title="麻將賓果 Bonus"></iframe>
+      <p class="bingo-rules">鋆???*1.2??/ 銝???*1.5??br>鈭??*2??/ 銝??*2.5??/p>
+      <iframe id="bingoFrame" class="bingo-frame" title="暻餃?鞈? Bonus"></iframe>
     </div>
   </div>
 
   <div class="modal" id="bonusIntroModal" aria-hidden="true">
     <div class="dialog">
-      <h2>進入獎勵關卡中…</h2>
-      <p>完成賓果 獲得更多積分！</p>
+      <h2>?脣??銝凌?/h2>
+      <p>摰?鞈? ?脣??游?蝛?嚗?/p>
     </div>
   </div>
 
   <audio id="bgmPlayer" src="gmae.mp3?v=audio-low-file-v1" loop preload="auto"></audio>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
   <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBzmIeQvky8twPrweVSSfmC-K6MLeRextY",
+      authDomain: "sheep-45408.firebaseapp.com",
+      projectId: "sheep-45408",
+      storageBucket: "sheep-45408.firebasestorage.app",
+      messagingSenderId: "253610827708",
+      appId: "1:253610827708:web:81a2ba898aff462d4055b9",
+      measurementId: "G-HZC5N0Y97X"
+    };
+    const LEADERBOARD_LIMIT = 40;
+    let leaderboardDb = null;
+
     function buildPairCounts(types, cards){
       let remainingPairs = (cards / 2) - (types * 2);
       const counts = Array.from({ length:types }, () => 2);
@@ -744,6 +758,20 @@
       return name || '匿名';
     }
 
+    function hasFirebaseConfig(){
+      return Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && window.firebase && firebase.firestore);
+    }
+
+    function getLeaderboardDb(){
+      if(!hasFirebaseConfig()) return null;
+      if(leaderboardDb) return leaderboardDb;
+      const app = firebase.apps && firebase.apps.length
+        ? firebase.app()
+        : firebase.initializeApp(FIREBASE_CONFIG);
+      leaderboardDb = app.firestore();
+      return leaderboardDb;
+    }
+
     function getLeaderboard(){
       try{
         return JSON.parse(localStorage.getItem('mahjongConnectLeaderboard') || '[]');
@@ -753,17 +781,50 @@
     }
 
     function saveLeaderboard(records){
-      localStorage.setItem('mahjongConnectLeaderboard', JSON.stringify(records.slice(0, 20)));
+      localStorage.setItem('mahjongConnectLeaderboard', JSON.stringify(records.slice(0, LEADERBOARD_LIMIT)));
     }
 
-    function renderLeaderboard(){
-      const records = getLeaderboard();
+    async function fetchLeaderboard(){
+      const db = getLeaderboardDb();
+      if(!db) return getLeaderboard();
+      const snapshot = await db.collection('leaderboard')
+        .orderBy('score', 'desc')
+        .limit(LEADERBOARD_LIMIT)
+        .get();
+      return snapshot.docs
+        .map(doc => doc.data())
+        .sort((a,b) => Number(b.score || 0) - Number(a.score || 0) || Number(a.time || 0) - Number(b.time || 0))
+        .slice(0, LEADERBOARD_LIMIT);
+    }
+
+    async function saveCloudScore(record){
+      const db = getLeaderboardDb();
+      if(!db) return false;
+      await db.collection('leaderboard').add({
+        name: record.name,
+        score: Number(record.score) || 0,
+        level: Number(record.level) || 1,
+        reason: record.reason,
+        time: Number(record.time) || Date.now(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return true;
+    }
+
+    async function renderLeaderboard(){
+      let records = [];
+      try{
+        records = await fetchLeaderboard();
+      }catch(err){
+        console.warn('Cloud leaderboard read failed. Using local records.', err);
+        records = getLeaderboard();
+      }
       el.leaderboardList.innerHTML = '';
       if(!records.length){
         el.leaderboardList.innerHTML = '<div class="leaderboard-empty">目前沒有紀錄</div>';
         return;
       }
-      records.slice(0, 10).forEach(record => {
+      records.slice(0, LEADERBOARD_LIMIT).forEach(record => {
         const row = document.createElement('div');
         row.className = 'leaderboard-row';
         const name = document.createElement('span');
@@ -775,22 +836,33 @@
       });
     }
 
-    function recordScore(reason = ''){
+    async function recordScore(reason = ''){
       if(state.scoreSaved) return;
-      const records = getLeaderboard();
-      records.push({
+      state.scoreSaved = true;
+      const record = {
         name:getPlayerName(),
         score:state.score,
         level:state.levelIndex + 1,
         reason,
         time:Date.now()
-      });
-      records.sort((a,b) => b.score - a.score || b.time - a.time);
-      saveLeaderboard(records);
-      state.scoreSaved = true;
+      };
+      try{
+        const savedCloud = await saveCloudScore(record);
+        if(!savedCloud){
+          const records = getLeaderboard();
+          records.push(record);
+          records.sort((a,b) => b.score - a.score || b.time - a.time);
+          saveLeaderboard(records);
+        }
+      }catch(err){
+        console.warn('Cloud leaderboard write failed. Using local records.', err);
+        const records = getLeaderboard();
+        records.push(record);
+        records.sort((a,b) => b.score - a.score || b.time - a.time);
+        saveLeaderboard(records);
+      }
       renderLeaderboard();
     }
-
     function abandonGame(){
       recordScore('放棄');
       startGame(0, true);
@@ -1304,3 +1376,4 @@
   </script>
 </body>
 </html>
+
